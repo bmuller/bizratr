@@ -1,6 +1,6 @@
 module BizRatr
   class Business
-    attr_accessor :name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city
+    attr_accessor :name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city, :categories
 
     def initialize(lat, lon, name)
       @ids = {}
@@ -9,12 +9,13 @@ module BizRatr
       @likes = {}
       @ratings = {}
       @review_counts = {}
+      @categories = {}
       @coords = [lat, lon]
       @name = name
     end
 
     def to_s
-      attrs = [:name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city]
+      attrs = [:name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city, :categories]
       args = attrs.map { |k| "#{k.to_s}=#{send(k)}" }.join(", ")
       "<Business [#{args}]>"
     end
@@ -54,6 +55,15 @@ module BizRatr
       @users[connector] = users
     end
 
+    def add_categories(connector, categories)
+      @categories[connector] = categories
+    end
+
+    # Get all categories from all connectors.
+    def flattened_categories
+      @categories.values.flatten.map { |c| c.downcase }.uniq
+    end
+
     def add_likes(connector, likes)
       @users[connector] = likes
     end
@@ -88,7 +98,8 @@ module BizRatr
     end
 
     def name_distance_to(other)
-      Levenshtein::normalized_distance(@name, other.name)
+      name = other.is_a?(Business) ? other.name : other
+      Levenshtein::normalized_distance(@name, name)
     end
 
     def ==(other)

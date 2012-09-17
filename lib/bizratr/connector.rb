@@ -29,6 +29,7 @@ module BizRatr
     def make_business(item)
       b = Business.new(item.lat, item.lng, item.name)
       b.add_id(:google_places, item.id)
+      b.add_categories(:google_places, item.types)
       b.phone = item.formatted_phone_number
       b.city = item.city || item.vicinity.split(',').last
       b.country = item.country
@@ -56,6 +57,8 @@ module BizRatr
     def make_business(item)
       b = Business.new(item['location']['lat'], item['location']['lng'], item['name'])
       b.add_id(:foursquare, item['id'])
+      categories = item.categories.map { |c| [ c.name ] + c.parents }.flatten
+      b.add_categories(:foursquare, categories)
       b.phone = item['contact'].fetch('phone', nil)
       b.twitter = item['contact'].fetch('twitter', nil)
       b.state = item['location']['state']
@@ -87,6 +90,7 @@ module BizRatr
     def make_business(item)
       b = Business.new(item['location']['coordinate']['latitude'], item['location']['coordinate']['longitude'], item['name'])
       b.add_id(:yelp, item['id'])
+      b.add_categories(:yelp, item['categories'].map(&:first))
       b.state = item['location']['state_code']
       b.zip = item['location']['postal_code']
       b.country = item['location']['country_code']
@@ -117,6 +121,14 @@ module BizRatr
     def search_location(location, query)
       merge @connectors.map { |c|
         c.search_location(location, query)
+      }
+    end
+
+    # Search a location (just like search_location) but only return the best
+    # matching business (based on name).
+    def search_location_strictly(location, name)
+      search_location(location, name).inject(nil) { |a,b|
+        (a.nil? or b.name_distance_to(name) < a.name_distance_to(name)) ? b : a
       }
     end
 
