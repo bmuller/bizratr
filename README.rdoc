@@ -1,0 +1,26 @@
+= BizRatr
+This gem pulls in business data from a variety of sources and synthesizes a singular view of the business.  Right now Yelp, Google Places, and Foursquare are used as sources.  Bizratr will collapse all of the matching sources into a singular view of each matching business.
+
+  >> require 'bizratr'
+  >> config = { 
+       :foursquare => { :client_id => 'anid', :client_secret => 'asecret' },
+       :yelp => { :consumer_key => 'akey', :consumer_secret => 'asecret', :token => 'atoken', :token_secret => 'atokensecret' },
+       :google_places => { :key => "akey" }
+     }
+  >> finder = BizRatr::Finder.new(config)
+  >> matches = finder.search_location('40.729401,-73.996061', 'third rail coffee')
+  >> puts matches.first.rating 
+   => 4.55
+
+In this example, the avgerage of the ratings from any of the sources (normalized to a 5 point scale) is used as the rating.  Each result has address information, rating information, "like" information, and other relevant info.
+
+You only need to specify the config options for the services you actually want to query.  You can sign up for each at the following locations:
+
+* Yelp: http://www.yelp.com/developers/getting_started
+* Google places: https://code.google.com/apis/console/b/0/
+* Foursquare: https://foursquare.com/oauth/
+
+
+= Licenses
+The bizratr code is distributed under the GPLv3.
+
