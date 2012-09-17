@@ -1,7 +1,8 @@
 PATH
   remote: .
   specs:
-    bizratr (0.0.3)
+    bizratr (0.0.4)
+      factual-api
       foursquare2
       geocoder
       google_places
@@ -12,6 +13,9 @@ PATH
 GEM
   remote: http://rubygems.org/
   specs:
+    factual-api (1.3.1)
+      json (>= 1.2.0)
+      oauth (>= 0.4.4)
     faraday (0.8.4)
       multipart-post (~> 1.1)
     faraday_middleware (0.8.8)

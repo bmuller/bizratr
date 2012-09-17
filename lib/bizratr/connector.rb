@@ -3,6 +3,7 @@ require 'yelpster'
 require 'levenshtein'
 require 'google_places'
 require 'geocoder'
+require 'factual'
 
 module BizRatr
   class Connector
@@ -12,6 +13,30 @@ module BizRatr
 
     def geocode(address)
       Geocoder.coordinates(address)
+    end
+  end
+
+  class FactualConnector < Connector
+    def initialize(config)
+      @client = Factual.new(config[:key], config[:secret])
+    end
+
+    def search_location(location, query)
+      location = geocode(location) if location.is_a? String
+      results = @client.table("places").filters("name" => query).geo("$circle" => { "$center" => location, "$meters" => 1000 })
+      results.map { |item| make_business(item) }
+    end
+
+    def make_business(item)
+      b = Business.new(item['latitude'], item['longitude'], item['name'])
+      b.add_id(:factual, item['factual_id'])
+      b.add_categories(:factual, item['category'].split(",").map(&:strip))
+      b.phone = item['tel'].gsub(/[\ ()-]*/, '')
+      b.city = item['locality']
+      b.country = item['country']
+      b.zip = item['postcode']
+      b.address = item['address']
+      b
     end
   end
 
@@ -30,7 +55,7 @@ module BizRatr
       b = Business.new(item.lat, item.lng, item.name)
       b.add_id(:google_places, item.id)
       b.add_categories(:google_places, item.types)
-      b.phone = item.formatted_phone_number
+      b.phone = (item.formatted_phone_number || "").gsub(/[\ ()-]*/, '')
       b.city = item.city || item.vicinity.split(',').last
       b.country = item.country
       b.zip = item.postal_code
@@ -59,7 +84,7 @@ module BizRatr
       b.add_id(:foursquare, item['id'])
       categories = item.categories.map { |c| [ c.name ] + c.parents }.flatten
       b.add_categories(:foursquare, categories)
-      b.phone = item['contact'].fetch('phone', nil)
+      b.phone = item['contact'].fetch('phone', '').gsub(/[\ ()-]*/, '')
       b.twitter = item['contact'].fetch('twitter', nil)
       b.state = item['location']['state']
       b.city = item['location']['city']
@@ -96,7 +121,7 @@ module BizRatr
       b.country = item['location']['country_code']
       b.city = item['location']['city']
       b.address = item['location']['address'].first
-      b.phone = item['phone']
+      b.phone = (item['phone'] || "").gsub(/[\ ()-]*/, '')
       b.add_rating(:yelp, item['rating'])
       b.add_review_counts(:yelp, item['review_count'])
       b
@@ -110,6 +135,7 @@ module BizRatr
         when :foursquare then FourSquareConnector.new(value)
         when :yelp then YelpConnector.new(value)
         when :google_places then GooglePlacesConnector.new(value)
+        when :factual then FactualConnector.new(value)
         else raise "No such connector found: #{key}"
         end
       }
