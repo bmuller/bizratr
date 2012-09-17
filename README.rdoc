@@ -16,7 +16,7 @@ This gem pulls in business data from a variety of sources and synthesizes a sing
    => 4.55
 
 
-In this example, the avgerage of the ratings from any of the sources (normalized to a 5 point scale) is used as the rating.  Each result has address information, rating information, "like" information, and other relevant info.
+In this example, the average of the ratings from any of the sources (normalized to a 5 point scale) is used as the rating.  Each result has address information, rating information, "like" information, and other relevant info.
 
 You only need to specify the config options for the services you actually want to query.  You can sign up for each at the following locations:
 
@@ -24,7 +24,8 @@ You only need to specify the config options for the services you actually want t
 * Google places: https://code.google.com/apis/console/b/0/
 * Foursquare: https://foursquare.com/oauth/
 
+See http://findingscience.com/bizratr for more information.
 
-= Licenses
+= License
 The bizratr code is distributed under the GPLv3.
 

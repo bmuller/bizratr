@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.summary = "Get business ratings."
   s.email = "bamuller@gmail.com"
   s.files = FileList["lib/**/*", "[A-Z]*", "Rakefile", "docs/**/*"]
-  s.homepage = "https://github.com/bmuller/bizratr"
+  s.homepage = "http://findingscience.com/bizratr"
   s.require_paths = ["lib"]
   s.required_ruby_version = Gem::Requirement.new(">= 1.9.0")
   s.add_dependency('foursquare2')

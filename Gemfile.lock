@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bizratr (0.0.1)
+    bizratr (0.0.3)
       foursquare2
       geocoder
       google_places

@@ -24,6 +24,22 @@ module BizRatr
       @ratings.values.inject(:+) / @ratings.length
     end
 
+    def total_users
+      @users.values.inject { |a,b| a+b } || 0
+    end
+
+    def total_reviews
+      @review_counts.values.inject { |a,b| a+b } || 0
+    end
+
+    def total_checkins
+      @checkins.values.inject { |a,b| a+b } || 0
+    end
+
+    def total_likes
+      @likes.values.inject { |a,b| a+b } || 0
+    end
+
     def merge(other)
       @ids = @ids.merge(other.ids)
       @phone ||= other.phone
