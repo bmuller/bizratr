@@ -20,5 +20,6 @@ Gem::Specification.new do |s|
   s.add_dependency('google_places')
   s.add_dependency('levenshtein')
   s.add_dependency('google_places')
+  s.add_dependency('geocoder')
   s.rubyforge_project = "bizratr"
 end

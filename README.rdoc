@@ -8,9 +8,13 @@ This gem pulls in business data from a variety of sources and synthesizes a sing
        :google_places => { :key => "akey" }
      }
   >> finder = BizRatr::Finder.new(config)
-  >> matches = finder.search_location('40.729401,-73.996061', 'third rail coffee')
+  >> matches = finder.search_location([40.729401, -73.996061], 'third rail coffee')
   >> puts matches.first.rating 
    => 4.55
+  >> matches = finder.search_location("240 Sullivan St., New York, NY 10012", 'third rail coffee')
+  >> puts matches.first.rating
+   => 4.55
+
 
 In this example, the avgerage of the ratings from any of the sources (normalized to a 5 point scale) is used as the rating.  Each result has address information, rating information, "like" information, and other relevant info.
 

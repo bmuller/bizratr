@@ -2,21 +2,16 @@ require 'foursquare2'
 require 'yelpster'
 require 'levenshtein'
 require 'google_places'
+require 'geocoder'
 
 module BizRatr
   class Connector
-    # https://api.foursquare.com/v2/venues/VENUE_ID/similar
-    def search_similar(business)
+    def search_location(location, query)
       raise "Not implemented"
     end
 
-    # https://developer.foursquare.com/docs/responses/venuestats
-    def checkins(business)
-      raise "Not implemented"
-    end
-
-    def search_location(ll, query)
-      raise "Not implemented"
+    def geocode(address)
+      Geocoder.coordinates(address)
     end
   end
 
@@ -25,9 +20,9 @@ module BizRatr
       @client = GooglePlaces::Client.new(config[:key])
     end
 
-    def search_location(ll, query)
-      coords = ll.split(',')
-      results = @client.spots(coords[0].to_f, coords[1].to_f, :name => query)
+    def search_location(location, query)
+      location = geocode(location) if location.is_a? String
+      results = @client.spots(location[0], location[1], :name => query)
       results.map { |item| make_business(item) }
     end
 
@@ -49,8 +44,12 @@ module BizRatr
       @client = Foursquare2::Client.new(config)
     end
 
-    def search_location(ll, query)
-      results = @client.search_venues(:ll => ll, :query => query)
+    def search_location(location, query)
+      if location.is_a? Array
+        results = @client.search_venues(:ll => location.join(","), :query => query)
+      else
+        results = @client.search_venues(:near => location, :query => query)
+      end
       results['groups'].first['items'].map { |item| make_business(item) }
     end
 
@@ -75,9 +74,10 @@ module BizRatr
       @client = Yelp::Client.new
     end
 
-    def search_location(ll, query)
-      latlon = ll.split(',')
-      config = { :term => query, :latitude => latlon.first, :longitude => latlon.last }
+    def search_location(location, query)
+      # while yelp does support searching by address, it does so much more shittily w/o lat/lon
+      location = geocode(location) if location.is_a? String
+      config = { :term => query, :latitude => location.first, :longitude => location.last }
       result = @client.search Yelp::V2::Search::Request::GeoPoint.new(config.merge(@config)) 
       result['businesses'].map { |item| 
         make_business(item) 
@@ -111,12 +111,16 @@ module BizRatr
       }
     end
 
-    def search_location(ll, query)
+    # Search for a business (or business category) near lat/lon coordinates.  The 
+    # location parameter should be either an address string or an array consisting of
+    # [ lat, lon ].
+    def search_location(location, query)
       merge @connectors.map { |c|
-        c.search_location(ll, query)
+        c.search_location(location, query)
       }
     end
 
+    private
     def merge(lists)
       lists.inject([]) { |o,t| merge_lists(o, t) }
     end
