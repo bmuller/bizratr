@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    bizratr (0.0.4)
+    bizratr (0.0.5)
       factual-api
       foursquare2
       geocoder

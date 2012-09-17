@@ -56,6 +56,7 @@ module BizRatr
       @review_counts = @review_counts.merge(other.review_counts)
       @coords[0] = (@coords[0].to_f + other.coords[0].to_f) / 2.0
       @coords[1] = (@coords[1].to_f + other.coords[1].to_f) / 2.0
+      @categories = @categories.merge(other.categories)
       return self
     end
 
@@ -115,7 +116,7 @@ module BizRatr
 
     def name_distance_to(other)
       name = other.is_a?(Business) ? other.name : other
-      Levenshtein::normalized_distance(@name, name)
+      Levenshtein::normalized_distance(@name.downcase, name.downcase)
     end
 
     def ==(other)
