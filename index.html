@@ -40,7 +40,7 @@
 
         <h1>BizRatr</h1>
 
-<p>This gem pulls in business data from a variety of sources and synthesizes a singular view of the business.  Right now <a href="http://yelp.com">Yelp</a>, <a href="http://factual.com">Factual</a>, <a href="http://google.com/places">Google Places</a>, and <a href="http://foursquare.com">Foursquare</a> are used as sources.  Bizratr will collapse all of the matching sources into a singular view of each matching business.</p>
+<p>This gem pulls in business data from a variety of sources and synthesizes a singular view of the business.  Right now <a href="http://facebook.com">Facebook</a>, <a href="http://yelp.com">Yelp</a>, <a href="http://factual.com">Factual</a>, <a href="http://google.com/places">Google Places</a>, and <a href="http://foursquare.com">Foursquare</a> are used as sources.  Bizratr will collapse all of the matching sources into a singular view of each matching business (businesses from each source are intelligently merged into the lists from the other sources, so that there is one record per business).</p>
 
 <div class="highlight"><pre><span class="o">&gt;&gt;</span> <span class="nb">require</span> <span class="s1">'bizratr'</span>
 <span class="o">&gt;&gt;</span> <span class="n">config</span> <span class="o">=</span> <span class="p">{</span> 
@@ -48,9 +48,10 @@
      <span class="ss">:yelp</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:consumer_key</span> <span class="o">=&gt;</span> <span class="s1">'akey'</span><span class="p">,</span> <span class="ss">:consumer_secret</span> <span class="o">=&gt;</span> <span class="s1">'asecret'</span><span class="p">,</span> 
                 <span class="ss">:token</span> <span class="o">=&gt;</span> <span class="s1">'atoken'</span><span class="p">,</span> <span class="ss">:token_secret</span> <span class="o">=&gt;</span> <span class="s1">'atokensecret'</span> <span class="p">},</span>
      <span class="ss">:google_places</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:key</span> <span class="o">=&gt;</span> <span class="s2">"akey"</span> <span class="p">},</span>
-     <span class="ss">:factual</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:key</span> <span class="o">=&gt;</span> <span class="s1">'akey'</span><span class="p">,</span> <span class="ss">:secret</span> <span class="o">=&gt;</span> <span class="s1">'asecret'</span> <span class="p">}</span>
+     <span class="ss">:factual</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:key</span> <span class="o">=&gt;</span> <span class="s1">'akey'</span><span class="p">,</span> <span class="ss">:secret</span> <span class="o">=&gt;</span> <span class="s1">'asecret'</span> <span class="p">},</span>
+     <span class="ss">:facebook</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="ss">:key</span> <span class="o">=&gt;</span> <span class="s1">'akey'</span><span class="p">,</span> <span class="ss">:secret</span> <span class="o">=&gt;</span> <span class="s1">'asecret'</span> <span class="p">}</span>
    <span class="p">}</span>
-<span class="o">&gt;&gt;</span> <span class="n">finder</span> <span class="o">=</span> <span class="no">BizRatr</span><span class="o">::</span><span class="no">Finder</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="o">&gt;&gt;</span> <span class="n">finder</span> <span class="o">=</span> <span class="no">BizRatr</span><span class="o">::</span><span class="no">UberClient</span><span class="o">.</span><span class="n">new</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 <span class="o">&gt;&gt;</span> <span class="n">location</span> <span class="o">=</span> <span class="o">[</span><span class="mi">40</span><span class="o">.</span><span class="mi">729401</span><span class="p">,</span> <span class="o">-</span><span class="mi">73</span><span class="o">.</span><span class="mi">996061</span><span class="o">]</span> <span class="c1"># this could be an address</span>
 <span class="o">&gt;&gt;</span> <span class="nb">name</span> <span class="o">=</span> <span class="s2">"third rail coffee"</span>
 <span class="o">&gt;&gt;</span> <span class="n">matches</span> <span class="o">=</span> <span class="n">finder</span><span class="o">.</span><span class="n">search_location</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="nb">name</span><span class="p">)</span>
@@ -70,6 +71,10 @@
  <span class="o">=&gt;</span> <span class="mi">0</span>
 <span class="o">&gt;&gt;</span> <span class="n">match</span><span class="o">.</span><span class="n">phone</span>
  <span class="o">=&gt;</span> <span class="mi">6468250812</span>
+<span class="o">&gt;&gt;</span> <span class="n">match</span><span class="o">.</span><span class="n">website_normalized</span>
+ <span class="o">=&gt;</span> <span class="s2">"http://thirdrailcoffee.com"</span>
+<span class="o">&gt;&gt;</span> <span class="n">match</span><span class="o">.</span><span class="n">website_likes</span>
+ <span class="o">=&gt;</span> <span class="p">{</span><span class="s2">"share_count"</span><span class="o">=&gt;</span><span class="mi">75</span><span class="p">,</span> <span class="s2">"like_count"</span><span class="o">=&gt;</span><span class="mi">10</span><span class="p">,</span> <span class="s2">"comment_count"</span><span class="o">=&gt;</span><span class="mi">9</span><span class="p">,</span> <span class="s2">"click_count"</span><span class="o">=&gt;</span><span class="mi">6</span><span class="p">}</span>
 </pre></div>
 
 <p>In this example, the average of the ratings from any of the sources (normalized to a 5 point scale) is used as the rating.  Each result has address information, rating information, "like" information, and other relevant info.  Businesses that are returned from each search are merged, with matching results squashed (based on name/location/phone/etc).</p>
@@ -84,6 +89,8 @@
 <li>Foursquare: <a href="https://foursquare.com/oauth/">https://foursquare.com/oauth/</a>
 </li>
 <li>Factual: <a href="https://www.factual.com/api-keys/request">https://www.factual.com/api-keys/request</a>
+</li>
+<li>Facebook: <a href="https://developers.facebook.com/apps">https://developers.facebook.com/apps</a>
 </li>
 </ul><h1>License</h1>
 
