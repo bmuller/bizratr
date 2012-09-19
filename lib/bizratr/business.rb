@@ -31,21 +31,31 @@ module BizRatr
       @users.values.inject { |a,b| a+b } || 0
     end
 
-    # Get all of the website like information from Facebook.  If there's no website, or an issue, return {} - otherwise
-    # you'll get something of the form {"share_count"=>75, "like_count"=>10, "comment_count"=>9, "click_count"=>6}
-    def website_likes
-      fb = @uberclient.get_connector(:facebook)
-      return {} if fb.nil? or @website.nil?
-      # normalize URL first
+    # remove path and query info from the businesses website
+    # (some website's have http://blah.com/index.html in some places
+    # and http://blah.com in others and http://blah.com/ in yet others
+    # - all three are equivalent)
+    def website_normalized
+      return nil if @website.nil?
       begin
         uri = URI(@website)
         uri.query = nil
         uri.path = ''
-        results = fb.get_url_likes(uri.to_s)
-        (results.length > 0) ? results.first : {}
+        uri.to_s
       rescue
-        {}
+        nil
       end
+    end
+
+    # Get all of the website like information from Facebook.  If there's no website, or an issue, return {} - otherwise
+    # you'll get something of the form {"share_count"=>75, "like_count"=>10, "comment_count"=>9, "click_count"=>6}
+    def website_likes
+      fb = @uberclient.get_connector(:facebook)
+      # normalize URL first
+      url = website_normalized
+      return {} if fb.nil? or url.nil?
+      results = fb.get_url_likes(url)
+      (results.length > 0) ? results.first : {}
     end
 
     def total_reviews
