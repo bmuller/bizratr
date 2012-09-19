@@ -21,6 +21,7 @@ Gem::Specification.new do |s|
   s.add_dependency('levenshtein')
   s.add_dependency('google_places')
   s.add_dependency('geocoder')
+  s.add_dependency('koala')
   s.add_dependency('factual-api')
   s.rubyforge_project = "bizratr"
 end

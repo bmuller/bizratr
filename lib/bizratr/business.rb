@@ -1,8 +1,10 @@
+require 'uri'
+
 module BizRatr
   class Business
-    attr_accessor :name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city, :categories
+    attr_accessor :name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city, :categories, :website
 
-    def initialize(lat, lon, name)
+    def initialize(uberclient, lat, lon, name)
       @ids = {}
       @checkins = {}
       @users = {}
@@ -12,10 +14,11 @@ module BizRatr
       @categories = {}
       @coords = [lat, lon]
       @name = name
+      @uberclient = uberclient
     end
 
     def to_s
-      attrs = [:name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city, :categories]
+      attrs = [:name, :phone, :address, :state, :country, :zip, :twitter, :ids, :checkins, :users, :likes, :ratings, :review_counts, :coords, :city, :categories, :website]
       args = attrs.map { |k| "#{k.to_s}=#{send(k)}" }.join(", ")
       "<Business [#{args}]>"
     end
@@ -26,6 +29,23 @@ module BizRatr
 
     def total_users
       @users.values.inject { |a,b| a+b } || 0
+    end
+
+    # Get all of the website like information from Facebook.  If there's no website, or an issue, return {} - otherwise
+    # you'll get something of the form {"share_count"=>75, "like_count"=>10, "comment_count"=>9, "click_count"=>6}
+    def website_likes
+      fb = @uberclient.get_connector(:facebook)
+      return {} if fb.nil? or @website.nil?
+      # normalize URL first
+      begin
+        uri = URI(@website)
+        uri.query = nil
+        uri.path = ''
+        results = fb.get_url_likes(uri.to_s)
+        (results.length > 0) ? results.first : {}
+      rescue
+        {}
+      end
     end
 
     def total_reviews
@@ -49,6 +69,7 @@ module BizRatr
       @zip ||= other.zip
       @twitter ||= other.twitter
       @city ||= other.city
+      @website ||= other.website
       @checkins = @checkins.merge(other.checkins)
       @users = @users.merge(other.users)
       @likes = @likes.merge(other.likes)
@@ -82,7 +103,7 @@ module BizRatr
     end
 
     def add_likes(connector, likes)
-      @users[connector] = likes
+      @likes[connector] = likes
     end
 
     def add_rating(connector, rating)

@@ -4,34 +4,74 @@ require 'levenshtein'
 require 'google_places'
 require 'geocoder'
 require 'factual'
+require 'koala'
 
 module BizRatr
   class Connector
-    def search_location(location, query)
+    def initialize(uberclient, config)
+      @uberclient = uberclient
+      @config = config
+      @client = make_client(@config)
+    end
+
+    def make_client(config)
       raise "Not implemented"
     end
 
-    def geocode(address)
-      Geocoder.coordinates(address)
+    def search_location(location, query)
+      raise "Not implemented"
+    end
+  end
+
+  class FacebookConnector < Connector
+    def make_client(config)
+      oauth = Koala::Facebook::OAuth.new(config[:key], config[:secret])
+      Koala::Facebook::API.new(oauth.get_app_access_token)
+    end
+
+    def search_location(location, query)
+      results = @client.search(query, { :type => 'place', :center => location.join(','), :distance => 1000 })
+      results.map { |item|
+        make_business(@client.get_object(item['id']))
+      }
+    end
+
+    def make_business(item)
+      b = Business.new(@uberclient, item['location']['latitude'], item['location']['longitude'], item['name'])
+      b.add_id(:facebook, item['id'])
+      b.city = item['location']['city']
+      b.country = item['location']['country']
+      b.phone = item['phone'] unless item['phone'] == "nope"
+      b.zip = item['location']['zip']
+      b.website = item['website'].split(' ').first
+      b.address = item['location']['street']
+      b.add_categories(:facebook, [item['category']])
+      b.add_checkins(:facebook, item['checkins'] + item['were_here_count'])
+      b.add_likes(:facebook, item['likes'])
+      b
+    end
+
+    def get_url_likes(url)
+      @client.fql_query("SELECT share_count, like_count, comment_count, click_count FROM link_stat WHERE url='#{url}'")
     end
   end
 
   class FactualConnector < Connector
-    def initialize(config)
-      @client = Factual.new(config[:key], config[:secret])
+    def make_client(config)
+      Factual.new(config[:key], config[:secret])
     end
 
     def search_location(location, query)
-      location = geocode(location) if location.is_a? String
       results = @client.table("places").filters("name" => query).geo("$circle" => { "$center" => location, "$meters" => 1000 })
       results.map { |item| make_business(item) }
     end
 
     def make_business(item)
-      b = Business.new(item['latitude'], item['longitude'], item['name'])
+      b = Business.new(@uberclient, item['latitude'], item['longitude'], item['name'])
       b.add_id(:factual, item['factual_id'])
       b.add_categories(:factual, item['category'].split(",").map(&:strip))
       b.phone = item['tel'].gsub(/[\ ()-]*/, '')
+      b.website = item['website']
       b.city = item['locality']
       b.country = item['country']
       b.zip = item['postcode']
@@ -41,46 +81,43 @@ module BizRatr
   end
 
   class GooglePlacesConnector < Connector
-    def initialize(config)
-      @client = GooglePlaces::Client.new(config[:key])
+    def make_client(config)
+      GooglePlaces::Client.new(config[:key])
     end
 
     def search_location(location, query)
-      location = geocode(location) if location.is_a? String
       results = @client.spots(location[0], location[1], :name => query)
       results.map { |item| make_business(item) }
     end
 
     def make_business(item)
-      b = Business.new(item.lat, item.lng, item.name)
+      b = Business.new(@uberclient, item.lat, item.lng, item.name)
       b.add_id(:google_places, item.id)
       b.add_categories(:google_places, item.types)
       b.phone = (item.formatted_phone_number || "").gsub(/[\ ()-]*/, '')
       b.city = item.city || item.vicinity.split(',').last
       b.country = item.country
+      b.website = item.website
       b.zip = item.postal_code
       b.address = item.vicinity.split(',').first
       b.add_rating(:google_places, item.rating)
+      b.add_review_counts(:google_places, item.reviews.length)
       b
     end
   end
 
   class FourSquareConnector < Connector
-    def initialize(config)
-      @client = Foursquare2::Client.new(config)
+    def make_client(config)
+      Foursquare2::Client.new(config)
     end
 
     def search_location(location, query)
-      if location.is_a? Array
-        results = @client.search_venues(:ll => location.join(","), :query => query)
-      else
-        results = @client.search_venues(:near => location, :query => query)
-      end
+      results = @client.search_venues(:ll => location.join(","), :query => query)
       results['groups'].first['items'].map { |item| make_business(item) }
     end
 
     def make_business(item)
-      b = Business.new(item['location']['lat'], item['location']['lng'], item['name'])
+      b = Business.new(@uberclient, item['location']['lat'], item['location']['lng'], item['name'])
       b.add_id(:foursquare, item['id'])
       categories = item.categories.map { |c| [ c.name ] + c.parents }.flatten
       b.add_categories(:foursquare, categories)
@@ -91,15 +128,15 @@ module BizRatr
       b.country = item['location']['cc']
       b.address = item['location']['address']
       b.add_checkins(:foursquare, item['stats']['checkinsCount'])
+      b.website = item['url']
       b.add_users(:foursquare, item['stats']['usersCount'])
       b
     end
   end
 
   class YelpConnector < Connector
-    def initialize(config)
-      @config = config
-      @client = Yelp::Client.new
+    def make_client(config)
+      Yelp::Client.new
     end
 
     def search_location(location, query)
@@ -113,7 +150,7 @@ module BizRatr
     end
 
     def make_business(item)
-      b = Business.new(item['location']['coordinate']['latitude'], item['location']['coordinate']['longitude'], item['name'])
+      b = Business.new(@uberclient, item['location']['coordinate']['latitude'], item['location']['coordinate']['longitude'], item['name'])
       b.add_id(:yelp, item['id'])
       b.add_categories(:yelp, item['categories'].map(&:first))
       b.state = item['location']['state_code']
@@ -128,16 +165,18 @@ module BizRatr
     end
   end
 
-  class Finder
+  class UberClient
     def initialize(config)
-      @connectors = config.map { |key, value| 
-        case key
-        when :foursquare then FourSquareConnector.new(value)
-        when :yelp then YelpConnector.new(value)
-        when :google_places then GooglePlacesConnector.new(value)
-        when :factual then FactualConnector.new(value)
-        else raise "No such connector found: #{key}"
-        end
+      @connectors = {}
+      config.each { |key, value| 
+        @connectors[key] = case key
+                           when :foursquare then FourSquareConnector.new(self, value)
+                           when :yelp then YelpConnector.new(self, value)
+                           when :google_places then GooglePlacesConnector.new(self, value)
+                           when :factual then FactualConnector.new(self, value)
+                           when :facebook then FacebookConnector.new(self, value)
+                           else raise "No such connector found: #{key}"
+                           end
       }
     end
 
@@ -145,9 +184,18 @@ module BizRatr
     # location parameter should be either an address string or an array consisting of
     # [ lat, lon ].
     def search_location(location, query)
-      merge @connectors.map { |c|
+      location = geocode(location) if location.is_a? String
+      merge @connectors.values.map { |c|
         c.search_location(location, query)
       }
+    end
+
+    def geocode(address)
+      Geocoder.coordinates(address)
+    end
+
+    def get_connector(key)
+      @connectors.fetch(key, nil)
     end
 
     # Search a location (just like search_location) but only return the best

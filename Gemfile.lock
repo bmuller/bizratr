@@ -1,12 +1,13 @@
 PATH
   remote: .
   specs:
-    bizratr (0.0.5)
+    bizratr (0.1.0)
       factual-api
       foursquare2
       geocoder
       google_places
       google_places
+      koala
       levenshtein
       yelpster
 
@@ -32,6 +33,9 @@ GEM
       multi_json (~> 1.0)
       multi_xml
     json (1.7.5)
+    koala (1.5.0)
+      faraday (~> 0.7)
+      multi_json (~> 1.3)
     levenshtein (0.2.2)
     multi_json (1.3.6)
     multi_xml (0.5.1)
